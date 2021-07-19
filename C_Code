@@ -1,0 +1,332 @@
+#include <reg51.h>
+#include<string.h>
+
+sbit rs = P2^5;
+sbit rw = P2^6;
+sbit en = P2^7;
+sbit busy P0^7;
+sfr Idata=0x80;
+
+sbit RDbar = P3^4;
+sbit WRbar P3^3;
+sbit INTRbar = P3^2;
+
+sbit buzzer = P2^2;
+sbit Smoke_sens = P2^3;
+sbit gas_sens = P2^4;
+
+void adcconv();
+void init();
+void conv();
+void send sms();
+void transmit_str(char *st);
+void init_serial();
+void transmit_data(unsigned char str);
+void msdelay(unsigned int time); 
+void datawrt_str(unsigned char *y,unsigned char k);
+void leddata(unsigned char);
+void ledemd(unsigned char);
+void Icdready();
+void measure_temp(); 
+unsigned char i,x[8].j;
+float adc;
+
+int adc 1,temp;
+float adc2;
+unsigned char decl,dec2,asc1,asc2,dec3,dec4,asc3,asc4;
+
+void main(void)
+{
+
+init();
+
+while(1)
+{
+
+measure_temp();
+
+if(Smoke_sens==0)
+
+{
+
+datawrt_str(" Smoke & Flame ",0x01); 
+datawrt_str("Detected",0xc4);
+transmit_str("AT+CMGD=1"); 
+transmit_data(0x0d);
+msdelay(200);
+transmit_str("AT+CMGF=1");
+transmit_data(0x0d);
+msdelay(200);
+transmit_str("AT+CMGS=\"9657955968\"");
+transmit_data(0x0d); 
+msdelay(200);
+transmit_str("Smoke & Flame Detected"); 
+transmit_data(0x1a);
+
+for(i=0;i<5;i++)
+{
+  buzzer=1;
+  msdelay(50);
+  buzzer=0;
+  msdelay(50);
+}
+
+msdelay(500); 
+lcdcmd(0x01);
+
+}
+
+if(gas_sens==0)
+
+{
+
+datawrt_str(" Gas Leackage",0x01); 
+datawrt_str("Detected",0xc4); 
+transmit_str("AT+CMGD=1");
+  transmit_data(0x0d);
+  msdelay(200);
+  transmit_str("AT+CMGF=1");
+  transmit_data(0x0d); 
+  msdelay(200);
+  transmit_str("AT+CMGS=\"9657955968\"");
+  transmit_data(0x0d);
+  msdelay(200);
+  transmit_str("Gas Leackage Detected");
+  transmit_data(0x1a);
+
+for(i=0;i<5;i++)
+{
+
+  buzzer=1;
+  msdelay(50);
+  buzzer=0;
+  msdelay(50);
+}
+
+msdelay(500); 
+lcdcmd(0x01);
+
+}
+
+}
+
+}
+
+
+void adcconv() {
+{
+  WRbar=0; 
+  msdelay(5); 
+  WRbar=1;
+
+while(INTRbar!=0);
+
+RDbar 1; 
+msdelay(5);
+RDbar=0;
+
+adc=P1;
+
+}
+
+void msdelay(unsigned int time)
+{
+  unsigned int i,j;
+  for(i=0;i<time;i++)
+    for(j=0:j<1275;j++);
+}
+
+void ledemd (unsigned char value)         //LCD COMMAND SEND FUNCTION
+{
+
+  lcdready();
+  Idata=value;
+  rs=0;
+  rw=0;
+  en=1;
+  msdelay(1);
+  en=0;
+  return;
+}
+
+void lcddata (unsigned char value)      //  LCD DATA SEND FUNCTION
+
+{ 
+Icdready(); 
+Idata=value;
+rs=1; 
+rw=0; 
+en=1;
+msdelay(1); 
+en=0; 
+return;
+}
+
+void lcdready()       //LCD READY CHECK
+{ 
+busy=1; 
+rs=0;
+rw=1; 
+while (busy==1) 
+{
+en=0;
+msdelay(1);
+en=1;
+}
+return;
+}
+
+void datawrt_str(unsigned char *y,unsigned char k)    //LCD DATA SEND WITH LOCATION OR COMMAND
+{
+lcdcmd(k):
+  lcdready();
+  while(*y)
+{
+  lcdready();
+  leddata(*y);
+  Icdready();
+  y++;
+}
+return;
+}
+
+void conv()
+{
+dec1 adc1%10;
+adc 1/=10;
+dec2=adc1%10;
+adc1/=10;
+dec3=adc1%10;
+dec4= adc1/10;
+asc1 dec1 | 0x30;
+asc2= dec2 | 0x30;
+asc3= dec3 | 0x30;
+asc4 dec4 | 0x30;
+}
+
+void measure_temp() 
+{
+  datawrt_str("Temperature",0x82); 
+  lcdcmd(0xC6);
+  adcconv(); 
+  adc2=(adc*1.5);
+  adc 1 (adc2*100);
+  conv();
+  lcddata(asc4);
+  msdelay(5);
+  lcddata(asc3);
+  msdelay(5);
+  lcddata('.');
+  msdelay(5);
+  lcddata(asc2);
+  msdelay(5);
+  lcddata(asc1);
+  msdelay(5);
+  lcddata('C');
+
+if(adc>=30)
+ {
+  datawrt_str("Temperature",0x01);
+  datawrt_str("Rised",0xc7);
+  
+  for(i=0;i<5;i++)
+{
+  buzzer=1;
+  msdelay(50);
+  buzzer=0;
+  msdelay(50);
+}
+
+transmit_str("AT+CMGD=1"); 
+transmit_data(0x0d);
+msdelay(200);
+transmit_str("AT+CMGF=1"); 
+transmit_data(0x0d);
+msdelay(200);
+transmit_str("AT+CMGS=\"9657955968\""); transmit_data(0x0d);
+msdelay(200);
+transmit_str("Temperature Rised:");
+transmit_data(asc4);
+transmit_data(asc3); 
+transmit_data('.');
+transmit_data(asc2);
+transmit_data(asc1);
+transmit_data('C');
+transmit_data(0x1a);
+lcdcmd(0x01);
+
+}
+
+}
+
+void init()
+
+{
+
+buzzer=0;
+Smoke_sens=1;
+gas_sens=1;
+lcdcmd (0x38);    //8 BIT LCD MODE
+lcdcmd(0x0C);
+lcdcmd(0x01);     // CLEAR LCD
+lcdcmd(0x06);     // lcd on pointer off
+INTRbar 1;        //set int0 pin as input
+P1=0xFF;          // set Port 1 as input 
+RDbar=1; 
+WRbar=1;
+
+datawrt_str("Industrial Fault ",0x80); 
+datawrt_str("Monitoing",0xc4); 
+init_serial(); 
+send sms(); 
+msdelay(500); 
+lcdcmd(0x01);
+
+}
+
+
+void transmit_data(unsigned char str)     //Function too transmit data through serial port
+
+{
+
+  SBUF=str;   //store data in SBUFF
+  while(TI==0);   //Wait for data to transmit
+  TI=0;
+}
+
+
+void transmit_str(char *st)
+
+{
+
+  while(*st!='\0') 
+  transmit_data(*st++);
+}
+
+void init_serial() // Initialize serial port
+{
+  TMOD=0x20;    //MOde 2
+  TH1=0xfd;     //9600 baud rate
+  SCON=0x50;    //Serial mode=1, 8 bit data, 1 stop bit, 1 start bit, Receiving ON
+  TR1=1;        //Start Timer
+}
+
+
+
+void send sms()
+{
+
+                                          //Delete Message at Location 1
+transmit str("AT+CMGD=1");
+transmit_data(0x0d); 
+msdelay(200);
+transmit_str("AT+CMGF=1"); 
+transmit_data(0x0d);
+msdelay(200);
+transmit_str("AT+CMGS=\"9657955968\"");
+transmit_data(0x0d);
+msdelay(200);
+transmit_str("WELCOME"); 
+transmit_data(0x1a);
+
+}
